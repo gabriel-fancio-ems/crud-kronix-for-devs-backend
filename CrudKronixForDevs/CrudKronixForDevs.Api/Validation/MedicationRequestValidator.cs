@@ -21,7 +21,7 @@ namespace CrudKronixForDevs.Api.Validation
             else if (request.Price > MaxPrice)
                 Add(erros, "preco", $"O preço deve ser no máximo {MaxPrice:N2}.");
 
-            if (request.QuantityInStock < 0)
+            if (request.StockQuantity < 0)
                 Add(erros, "quantidadeEstoque", MedicationMessages.StockInvalid);
 
             if (request.ExpirationDate is null)

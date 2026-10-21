@@ -42,6 +42,7 @@ namespace CrudKronixForDevs.Core.Applications
 
             return medications
                 .OrderBy(m => m.ExpirationDate)
+                .Where(m => m.ExpiresSoon(days, now))
                 .Select(m => m.ToResponse())
                 .ToList();
         }
@@ -54,7 +55,7 @@ namespace CrudKronixForDevs.Core.Applications
                 request.Name ?? string.Empty,
                 request.ActiveIngredient ?? string.Empty,
                 request.Price,
-                request.QuantityInStock,
+                request.StockQuantity,
                 request.ExpirationDate ?? default,
                 Now());
 
@@ -73,7 +74,7 @@ namespace CrudKronixForDevs.Core.Applications
                 request.Name ?? string.Empty,
                 request.ActiveIngredient ?? string.Empty,
                 request.Price,
-                request.QuantityInStock,
+                request.StockQuantity,
                 request.ExpirationDate ?? default,
                 Now());
 
