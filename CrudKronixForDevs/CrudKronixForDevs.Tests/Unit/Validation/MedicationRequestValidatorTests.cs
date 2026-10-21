@@ -94,7 +94,7 @@ namespace CrudKronixForDevs.Tests.Unit.Validation
         [Fact]
         public void Validate_NegativeStock_ShouldReturnError()
         {
-            var errors = _validator.Validate(new MedicationRequestBuilder().WithQuantityInStock(-1).Build());
+            var errors = _validator.Validate(new MedicationRequestBuilder().WithStockQuantity(-1).Build());
 
             Assert.Equal(MedicationMessages.StockInvalid, Assert.Single(errors["quantidadeEstoque"]));
         }

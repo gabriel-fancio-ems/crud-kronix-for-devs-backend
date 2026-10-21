@@ -55,7 +55,7 @@ namespace CrudKronixForDevs.Core.Applications
                 request.Name ?? string.Empty,
                 request.ActiveIngredient ?? string.Empty,
                 request.Price,
-                request.QuantityInStock,
+                request.StockQuantity,
                 request.ExpirationDate ?? default,
                 Now());
 
@@ -74,7 +74,7 @@ namespace CrudKronixForDevs.Core.Applications
                 request.Name ?? string.Empty,
                 request.ActiveIngredient ?? string.Empty,
                 request.Price,
-                request.QuantityInStock,
+                request.StockQuantity,
                 request.ExpirationDate ?? default,
                 Now());
 
