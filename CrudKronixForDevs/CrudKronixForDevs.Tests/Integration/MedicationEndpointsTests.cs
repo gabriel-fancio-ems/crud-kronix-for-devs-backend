@@ -82,7 +82,7 @@ namespace CrudKronixForDevs.Tests.Integration
             var request = NewRequest()
                 .WithActiveIngredient("Paracetamol")
                 .WithPrice(18.90m)
-                .WithQuantityInStock(120)
+                .WithStockQuantity(120)
                 .Build();
 
             var created = await CreateAsync(request);
@@ -98,7 +98,7 @@ namespace CrudKronixForDevs.Tests.Integration
         [Fact]
         public async Task Create_WithInvalidData_ShouldReturn400WithAllErrors()
         {
-            var response = await _client.PostAsJsonAsync(Route, new MedicationRequest { Price = 0, QuantityInStock = -5 });
+            var response = await _client.PostAsJsonAsync(Route, new MedicationRequest { Price = 0, StockQuantity = -5 });
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 

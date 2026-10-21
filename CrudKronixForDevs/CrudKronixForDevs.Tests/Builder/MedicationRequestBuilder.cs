@@ -19,7 +19,7 @@ namespace CrudKronixForDevs.Tests.Builder
         private string? _name = "Dipirona Monoidratada";
         private string? _activeIngredient = "Dipirona";
         private decimal _price = 12.90m;
-        private int _quantityInStock = 150;
+        private int _stockQuantity = 150;
         private DateOnly? _expirationDate;
 
         /// <param name="today">Data de "hoje" usada para calcular uma validade futura (padrão: daqui a 1 ano).</param>
@@ -31,7 +31,7 @@ namespace CrudKronixForDevs.Tests.Builder
         public MedicationRequestBuilder WithName(string? name) { _name = name; return this; }
         public MedicationRequestBuilder WithActiveIngredient(string? activeIngredient) { _activeIngredient = activeIngredient; return this; }
         public MedicationRequestBuilder WithPrice(decimal price) { _price = price; return this; }
-        public MedicationRequestBuilder WithQuantityInStock(int quantity) { _quantityInStock = quantity; return this; }
+        public MedicationRequestBuilder WithStockQuantity(int stockQuantity) { _stockQuantity = stockQuantity; return this; }
         public MedicationRequestBuilder WithExpirationDate(DateOnly? expirationDate) { _expirationDate = expirationDate; return this; }
 
         /// <summary>Nome único, útil nos testes de integração para não esbarrar na regra de duplicidade.</summary>
@@ -42,7 +42,7 @@ namespace CrudKronixForDevs.Tests.Builder
             Name = _name,
             ActiveIngredient = _activeIngredient,
             Price = _price,
-            QuantityInStock = _quantityInStock,
+            StockQuantity = _stockQuantity,
             ExpirationDate = _expirationDate
         };
     }

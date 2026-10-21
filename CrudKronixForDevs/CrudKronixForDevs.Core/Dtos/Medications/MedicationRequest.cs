@@ -22,7 +22,7 @@ namespace CrudKronixForDevs.Core.Dtos.Medications
         public decimal Price { get; init; }
 
         /// <example>150</example>
-        public int QuantityInStock { get; init; }
+        public int StockQuantity { get; init; }
 
         /// <example>2026-10-20</example>
         public DateOnly? ExpirationDate { get; init; }

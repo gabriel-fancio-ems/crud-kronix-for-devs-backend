@@ -58,7 +58,7 @@ namespace CrudKronixForDevs.Tests.Unit.Applications
         public async Task CreateAsync_ShouldMapQuantityInStockToStockQuantity()
         {
             // No request o campo se chama QuantityInStock; na resposta, StockQuantity.
-            var created = await _application.CreateAsync(NewRequest().WithQuantityInStock(42).Build());
+            var created = await _application.CreateAsync(NewRequest().WithStockQuantity(42).Build());
 
             Assert.Equal(42, created.StockQuantity);
         }
