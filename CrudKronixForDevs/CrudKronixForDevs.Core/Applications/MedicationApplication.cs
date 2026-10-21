@@ -42,6 +42,7 @@ namespace CrudKronixForDevs.Core.Applications
 
             return medications
                 .OrderBy(m => m.ExpirationDate)
+                .Where(m => m.ExpiresSoon(days, now))
                 .Select(m => m.ToResponse())
                 .ToList();
         }
