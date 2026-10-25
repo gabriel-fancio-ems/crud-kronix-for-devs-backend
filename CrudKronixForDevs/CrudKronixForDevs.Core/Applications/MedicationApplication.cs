@@ -5,6 +5,7 @@ using CrudKronixForDevs.Core.Domains.Interfaces;
 using CrudKronixForDevs.Core.Dtos.Medications;
 using CrudKronixForDevs.Core.Extensions;
 using CrudKronixForDevs.Core.Resources.Medications;
+using CrudKronixForDevs.Core.Resources.OperationCenters;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -13,6 +14,7 @@ namespace CrudKronixForDevs.Core.Applications
 {
     public class MedicationApplication(
         IMedicationRepository repository,
+        IOperationCenterRepository operationCenterRepository,
         TimeProvider timeProvider) : IMedicationApplication
     {
         public async Task<IReadOnlyList<MedicationResponse>> ListAsync(string? name)
@@ -50,6 +52,7 @@ namespace CrudKronixForDevs.Core.Applications
         public async Task<MedicationResponse> CreateAsync(MedicationRequest request)
         {
             await EnsureNotDuplicatedAsync(request, idIgnored: null);
+            await EnsureOperationCenterExistsAsync(request);
 
             var medication = Medication.Add(
                 request.Name ?? string.Empty,
@@ -57,6 +60,7 @@ namespace CrudKronixForDevs.Core.Applications
                 request.Price,
                 request.StockQuantity,
                 request.ExpirationDate ?? default,
+                request.OperationCenterId ?? Guid.Empty,
                 Now());
 
             await repository.AddAsync(medication);
@@ -69,6 +73,7 @@ namespace CrudKronixForDevs.Core.Applications
             if (medication is null) return null;
 
             await EnsureNotDuplicatedAsync(request, idIgnored: id);
+            await EnsureOperationCenterExistsAsync(request);
 
             medication.Update(
                 request.Name ?? string.Empty,
@@ -76,6 +81,7 @@ namespace CrudKronixForDevs.Core.Applications
                 request.Price,
                 request.StockQuantity,
                 request.ExpirationDate ?? default,
+                request.OperationCenterId ?? Guid.Empty,
                 Now());
 
             await repository.UpdateAsync(medication);
@@ -101,6 +107,19 @@ namespace CrudKronixForDevs.Core.Applications
             if (duplicado)
                 throw new DuplicateMedicationException(
                     MedicationMessages.DuplicateMedication(request.Name!));
+        }
+
+        /// <summary>
+        /// Regra: o medicamento precisa apontar para um centro de operação que exista.
+        /// Id vazio fica para a entidade barrar (OperationCenterRequired).
+        /// </summary>
+        private async Task EnsureOperationCenterExistsAsync(MedicationRequest request)
+        {
+            if (request.OperationCenterId is not { } operationCenterId || operationCenterId == Guid.Empty) return;
+
+            var operationCenter = await operationCenterRepository.GetByIdAsync(operationCenterId);
+            if (operationCenter is null)
+                throw new DomainException(OperationCenterMessages.OperationCenterNotFound);
         }
 
         private DateTime Now() => timeProvider.GetLocalNow().DateTime;

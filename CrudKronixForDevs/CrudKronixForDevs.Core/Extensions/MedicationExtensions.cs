@@ -20,6 +20,7 @@ namespace CrudKronixForDevs.Core.Extensions
             medication.Price,
             medication.StockQuantity,
             medication.ExpirationDate,
+            medication.OperationCenterId,
             medication.CreatedAt
         );
     }

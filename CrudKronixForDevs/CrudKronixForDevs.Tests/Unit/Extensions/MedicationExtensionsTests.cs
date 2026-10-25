@@ -14,7 +14,8 @@ namespace CrudKronixForDevs.Tests.Unit.Extensions
         {
             var now = FixedTimeProvider.DefaultNow.UtcDateTime;
             var expiration = DateOnly.FromDateTime(now).AddYears(1);
-            var medication = Medication.Add("Dipirona", "Dipirona Monoidratada", 12.90m, 150, expiration, now);
+            var operationCenterId = Guid.NewGuid();
+            var medication = Medication.Add("Dipirona", "Dipirona Monoidratada", 12.90m, 150, expiration, operationCenterId, now);
 
             var response = medication.ToResponse();
 
@@ -24,6 +25,7 @@ namespace CrudKronixForDevs.Tests.Unit.Extensions
             Assert.Equal(12.90m, response.Price);
             Assert.Equal(150, response.StockQuantity);
             Assert.Equal(expiration, response.ExpirationDate);
+            Assert.Equal(operationCenterId, response.OperationCenterId);
             Assert.Equal(now, response.CreatedAt);
         }
     }

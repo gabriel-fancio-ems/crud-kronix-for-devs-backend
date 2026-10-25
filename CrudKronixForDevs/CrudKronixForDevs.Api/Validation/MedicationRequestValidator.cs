@@ -1,5 +1,6 @@
 ﻿using CrudKronixForDevs.Core.Dtos.Medications;
 using CrudKronixForDevs.Core.Resources.Medications;
+using CrudKronixForDevs.Core.Resources.OperationCenters;
 
 namespace CrudKronixForDevs.Api.Validation
 {
@@ -26,6 +27,10 @@ namespace CrudKronixForDevs.Api.Validation
 
             if (request.ExpirationDate is null)
                 Add(erros, "dataValidade", MedicationMessages.ExpirationDateRequired);
+
+            // Aqui só conferimos se o id foi enviado; se o centro existe, quem confere é o caso de uso.
+            if (request.OperationCenterId is null || request.OperationCenterId == Guid.Empty)
+                Add(erros, "centroOperacao", OperationCenterMessages.OperationCenterRequired);
 
             return erros.ToDictionary(e => e.Key, e => e.Value.ToArray());
         }
