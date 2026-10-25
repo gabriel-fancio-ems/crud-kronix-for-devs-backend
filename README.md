@@ -169,15 +169,15 @@ CrudKronixForDevs/
 
 | Pasta | Projeto | Responsabilidade |
 | --- | --- | --- |
-| `Api/Controllers` | Api | `AuthController` e `MedicationController`: recebem a requisição, validam o formato e delegam ao Core |
+| `Api/Controllers` | Api | `AuthController`, `MedicationController` e `OperationCenterController`: recebem a requisição, validam o formato e delegam ao Core |
 | `Api/Validation` | Api | Validadores manuais (`IValidator<T>`) que devolvem `campo → erros` |
 | `Api/Authorization` | Api | Geração de JWT, hash de senha, opções do JWT e esquema Bearer no OpenAPI |
 | `Api/Middlewares` | Api | `ExceptionHandlingMiddleware`: converte exceções em ProblemDetails |
 | `Api/DependencyInjection` | Api | Registro de serviços e criação do usuário administrador na subida |
-| `Core/Applications` | Core | Casos de uso: `MedicationApplication` e `AuthApplication` |
-| `Core/Domains` | Core | Entidades `Medication` e `User`, exceções de domínio e interfaces de repositório |
-| `Core/Dtos` | Core | Contratos de entrada e saída (`MedicationRequest`, `MedicationResponse`, `LoginRequest`, `LoginResponse`) |
-| `Core/Services` | Core | Repositórios em memória de medicamentos e usuários |
+| `Core/Applications` | Core | Casos de uso: `MedicationApplication`, `OperationCenterApplication` e `AuthApplication` |
+| `Core/Domains` | Core | Entidades `Medication`, `OperationCenter` e `User`, enum `OperationCenterStatus`, exceções de domínio e interfaces de repositório |
+| `Core/Dtos` | Core | Contratos de entrada e saída (`MedicationRequest`, `MedicationResponse`, `OperationCenterRequest`, `OperationCenterResponse`, `LoginRequest`, `LoginResponse`) |
+| `Core/Services` | Core | Repositórios em memória de medicamentos, centros de operação e usuários |
 | `Core/Extensions` | Core | Mapeamento entidade → DTO e normalização de texto para busca |
 | `Core/Resources` | Core | Mensagens exibidas ao usuário, centralizadas |
 | `Core/Configuration` | Core | `UserOptions`: dados do usuário administrador |
@@ -185,13 +185,13 @@ CrudKronixForDevs/
 
 **Caminho de uma requisição:** Controller → Validator → Application (caso de uso) → Domínio → Repositório → DTO de resposta.
 
-**Tempo de vida das dependências:** repositórios, validadores, `PasswordService`, `JwtTokenService` e `TimeProvider` são Singleton (os repositórios precisam sobreviver entre requisições). `MedicationApplication` e `AuthApplication` são Scoped.
+**Tempo de vida das dependências:** repositórios, validadores, `PasswordService`, `JwtTokenService` e `TimeProvider` são Singleton (os repositórios precisam sobreviver entre requisições). `MedicationApplication`, `OperationCenterApplication` e `AuthApplication` são Scoped.
 
 **Pipeline HTTP, na ordem:** `ExceptionHandlingMiddleware` → OpenAPI e Scalar (só em Development) → `UseAuthentication` → `UseAuthorization` → Controllers.
 
 ## Autenticação
 
-Existe um único usuário, o administrador criado na subida da API a partir da seção `User`. Ele faz login com e-mail e senha e recebe um JWT válido por 60 minutos. Todo endpoint de medicamentos exige esse token.
+Existe um único usuário, o administrador criado na subida da API a partir da seção `User`. Ele faz login com e-mail e senha e recebe um JWT válido por 60 minutos. Todo endpoint de medicamentos e de centros de operação exige esse token.
 
 1. Na subida, `AdminUserAsync` lê `UserOptions`, gera o hash da senha com `PasswordService` e grava o usuário no repositório em memória. O e-mail é guardado em minúsculas.
 2. `POST /api/auth/login` valida o formato, busca o usuário por e-mail (sem diferenciar maiúsculas) e confere a senha contra o hash.
@@ -205,7 +205,7 @@ Existe um único usuário, o administrador criado na subida da API a partir da s
 
 ## Endpoints
 
-São sete endpoints: dois de autenticação e cinco de medicamentos. Todos falam JSON em camelCase; só o login é público.
+São doze endpoints: dois de autenticação, cinco de medicamentos e cinco de centros de operação. Todos falam JSON em camelCase; só o login é público.
 
 | Método | Rota | Auth | Sucesso | Erros |
 | --- | --- | --- | --- | --- |
@@ -216,8 +216,13 @@ São sete endpoints: dois de autenticação e cinco de medicamentos. Todos falam
 | POST | `/api/medication` | Sim | 201 `MedicationResponse` + cabeçalho `Location` | 400, 401, 409 |
 | PUT | `/api/medication/{id}` | Sim | 200 `MedicationResponse` | 400, 401, 404, 409 |
 | DELETE | `/api/medication/{id}` | Sim | 204 sem corpo | 401, 404 |
+| GET | `/api/operation-center?descricao=<trecho>` | Sim | 200 lista de `OperationCenterResponse` | 401 |
+| GET | `/api/operation-center/{id}` | Sim | 200 `OperationCenterResponse` | 401, 404 |
+| POST | `/api/operation-center` | Sim | 201 `OperationCenterResponse` + cabeçalho `Location` | 400, 401, 409 |
+| PUT | `/api/operation-center/{id}` | Sim | 200 `OperationCenterResponse` | 400, 401, 404, 409 |
+| DELETE | `/api/operation-center/{id}` | Sim | 204 sem corpo | 401, 404, 409 |
 
-`{id}` é um GUID. A listagem filtra por trecho do nome **ou** do princípio ativo, sem diferenciar acentos e maiúsculas, e ordena por nome.
+`{id}` é um GUID. A listagem de medicamentos filtra por trecho do nome **ou** do princípio ativo, sem diferenciar acentos e maiúsculas, e ordena por nome. A de centros de operação filtra por trecho da descrição e ordena por descrição.
 
 ### Login
 
@@ -246,7 +251,8 @@ Content-Type: application/json
   "activeIngredient": "Dipirona",
   "price": 12.90,
   "quantityInStock": 150,
-  "expirationDate": "2027-10-20"
+  "expirationDate": "2027-10-20",
+  "operationCenterId": "9b2f1c3e-0d4a-4f6b-8e7a-1c2d3e4f5a6b"
 }
 ```
 
@@ -260,6 +266,31 @@ Content-Type: application/json
   "price": 12.90,
   "stockQuantity": 150,
   "expirationDate": "2027-10-20",
+  "operationCenterId": "9b2f1c3e-0d4a-4f6b-8e7a-1c2d3e4f5a6b",
+  "createdAt": "2026-10-21T11:34:00"
+}
+```
+
+Todo medicamento pertence a um centro de operação: `operationCenterId` é obrigatório e precisa apontar para um centro já cadastrado.
+
+### Centro de operação: entrada (POST e PUT)
+
+```json
+{
+  "description": "Centro de Distribuição São Paulo",
+  "status": "Active"
+}
+```
+
+`status` aceita `Active` ou `Inactive`.
+
+### Centro de operação: saída
+
+```json
+{
+  "id": "9b2f1c3e-0d4a-4f6b-8e7a-1c2d3e4f5a6b",
+  "description": "Centro de Distribuição São Paulo",
+  "status": "Active",
   "createdAt": "2026-10-21T11:34:00"
 }
 ```
@@ -277,14 +308,19 @@ A validação acontece em duas camadas: o validador da Api devolve 400 com todos
 | `price` | maior que 0 e no máximo 100.000,00 | maior que 0 |
 | `quantityInStock` | não negativo | não negativo |
 | `expirationDate` | obrigatório | posterior à data de hoje (400 via `DomainException`) |
+| `operationCenterId` | obrigatório (não pode ser GUID vazio) | o centro precisa existir (400 via `DomainException`) |
+| `description` (centro) | obrigatório, até 150 caracteres | obrigatório; espaços nas pontas removidos; única (409) |
+| `status` (centro) | obrigatório, `Active` ou `Inactive` | precisa ser um valor válido do enum |
 | `email` (login) | obrigatório e com `@` | guardado em minúsculas |
 | `password` (login) | obrigatório | conferido contra o hash |
 
-**Nome único:** dois medicamentos não podem ter o mesmo nome, comparado sem acentos e sem maiúsculas ("Dipirona" e "DIPIRONA" colidem). No PUT, o próprio registro é ignorado na checagem.
+**Nome único:** dois medicamentos não podem ter o mesmo nome, comparado sem acentos e sem maiúsculas ("Dipirona" e "DIPIRONA" colidem). No PUT, o próprio registro é ignorado na checagem. A mesma regra vale para a descrição dos centros de operação.
+
+**Centro em uso:** um centro de operação com medicamentos vinculados não pode ser removido (409).
 
 **Data de referência:** "hoje" vem do `TimeProvider` em horário local, o que permite congelar a data nos testes.
 
-**Mensagens:** todos os textos exibidos ao usuário ficam em `MedicationMessages` e `AuthMessages`, em `Core/Resources`.
+**Mensagens:** todos os textos exibidos ao usuário ficam em `MedicationMessages`, `OperationCenterMessages` e `AuthMessages`, em `Core/Resources`.
 
 ## Tratamento de erros
 
@@ -294,6 +330,8 @@ Toda resposta de erro segue o formato ProblemDetails (RFC 9457), com `Content-Ty
 | --- | --- | --- |
 | Validador da Api | 400 | erros por campo em `errors` (`ValidationProblemDetails`) |
 | `DuplicateMedicationException` | 409 | Medicamento duplicado |
+| `DuplicateOperationCenterException` | 409 | Centro de operação duplicado |
+| `OperationCenterInUseException` | 409 | Centro de operação em uso |
 | `DomainException` | 400 | Regra de negócio violada |
 | Login inválido | 401 | Não autorizado |
 | Token ausente, inválido ou expirado | 401 | resposta padrão do JwtBearer |
@@ -313,11 +351,11 @@ Exemplo de 400 de validação:
 }
 ```
 
-As chaves de `errors` são `nome`, `principioAtivo`, `preco`, `quantidadeEstoque` e `dataValidade`.
+As chaves de `errors` são `nome`, `principioAtivo`, `preco`, `quantidadeEstoque`, `dataValidade` e `centroOperacao` para medicamentos, e `descricao` e `status` para centros de operação.
 
 ## Testes
 
-O projeto `CrudKronixForDevs.Tests` tem 116 métodos de teste xUnit (`[Fact]` e `[Theory]`): 93 unitários e 23 de integração. Rode tudo da pasta `CrudKronixForDevs`:
+O projeto `CrudKronixForDevs.Tests` tem 170 métodos de teste xUnit (`[Fact]` e `[Theory]`): 135 unitários e 35 de integração. Rode tudo da pasta `CrudKronixForDevs`:
 
 ```bash
 dotnet test
@@ -328,20 +366,25 @@ dotnet test --collect:"XPlat Code Coverage"
 
 | Área | Arquivo | Testes |
 | --- | --- | --- |
-| Casos de uso | `MedicationApplicationTests` | 22 |
+| Casos de uso | `MedicationApplicationTests` | 27 |
+| Casos de uso | `OperationCenterApplicationTests` | 13 |
 | Casos de uso | `AuthApplicationTests` | 7 |
 | Domínio | `MedicationTests` | 19 |
+| Domínio | `OperationCenterTests` | 8 |
 | Domínio | `UserTests` | 5 |
-| Validação | `MedicationRequestValidatorTests` | 11 |
+| Validação | `MedicationRequestValidatorTests` | 12 |
+| Validação | `OperationCenterRequestValidatorTests` | 7 |
 | Validação | `LoginRequestValidatorTests` | 4 |
 | Repositórios | `MedicationRepositoryInMemoryTests` | 8 |
+| Repositórios | `OperationCenterRepositoryInMemoryTests` | 7 |
 | Repositórios | `UserRepositoryInMemoryTests` | 4 |
 | Autorização | `JwtTokenServiceTests` | 6 |
 | Autorização | `PasswordServiceTests` | 4 |
-| Extensões | `StringExtensionsTests`, `MedicationExtensionsTests` | 3 |
-| Integração | `MedicationEndpointsTests` | 14 |
+| Extensões | `StringExtensionsTests`, `MedicationExtensionsTests`, `OperationCenterExtensionsTests` | 4 |
+| Integração | `MedicationEndpointsTests` | 16 |
+| Integração | `OperationCenterEndpointsTests` | 10 |
 | Integração | `AuthEndpointsTests` | 9 |
 
 **Integração:** `CrudKronixApiFactory` sobe a API real em memória com `WebApplicationFactory<Program>` e injeta um usuário e uma chave JWT só de teste. Por isso os testes não dependem do User Secrets de quem roda. `CreateAuthenticatedClientAsync()` devolve um `HttpClient` já com o token.
 
-**Apoios:** `FixedTimeProvider` congela o relógio em 15/01/2026 10h UTC, `FakeTokenService` evita assinar JWT nos testes de caso de uso e `MedicationRequestBuilder` monta requisições válidas para variar um campo por vez.
+**Apoios:** `FixedTimeProvider` congela o relógio em 15/01/2026 10h UTC, `FakeTokenService` evita assinar JWT nos testes de caso de uso e `MedicationRequestBuilder` / `OperationCenterRequestBuilder` montam requisições válidas para variar um campo por vez.

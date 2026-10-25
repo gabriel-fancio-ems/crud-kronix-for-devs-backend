@@ -1,5 +1,6 @@
 ﻿using CrudKronixForDevs.Core.Domains.Exceptions;
 using CrudKronixForDevs.Core.Resources.Medications;
+using CrudKronixForDevs.Core.Resources.OperationCenters;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -11,8 +12,8 @@ namespace CrudKronixForDevs.Core.Domains
     /// Entidade de domínio: representa um medicamento e protege as próprias regras.
     ///
     /// Repare que os "set" são privados. Ninguém de fora consegue deixar um medicamento
-    /// em estado inválido, porque toda alteração passa por <see cref="Add(string, string, string, decimal, int, DateOnly, DateTime)"/> ou
-    /// <see cref="Update(string, string, string, decimal, int, DateOnly, DateTime)"/>, que validam os dados antes de aplicar.
+    /// em estado inválido, porque toda alteração passa por <see cref="Add(string, string, decimal, int, DateOnly, Guid, DateTime)"/> ou
+    /// <see cref="Update(string, string, decimal, int, DateOnly, Guid, DateTime)"/>, que validam os dados antes de aplicar.
     /// </summary>
     /// 
     public class Medication
@@ -35,11 +36,16 @@ namespace CrudKronixForDevs.Core.Domains
         public int StockQuantity { get; set; }
 
         public DateOnly ExpirationDate { get; set; }
+
+        /// <summary>Centro de operação ao qual o medicamento pertence.</summary>
+        [Required]
+        public Guid OperationCenterId { get; private set; }
+
         public DateTime CreatedAt { get; private set; }
 
         private Medication() { }
 
-        public static Medication Add(string name, string activeIngredient, decimal price, int stockQuantity, DateOnly expirationDate, DateTime createdAt)
+        public static Medication Add(string name, string activeIngredient, decimal price, int stockQuantity, DateOnly expirationDate, Guid operationCenterId, DateTime createdAt)
         {
             var medication = new Medication
             {
@@ -48,18 +54,18 @@ namespace CrudKronixForDevs.Core.Domains
             };
 
             medication.DefineData(name, activeIngredient, price, stockQuantity,
-                expirationDate, DateOnly.FromDateTime(createdAt));
+                expirationDate, operationCenterId, DateOnly.FromDateTime(createdAt));
 
             return medication;
         }
 
-        public void Update(string name, string activeIngredient, decimal price, int stockQuantity, DateOnly expirationDate, DateTime createdAt)
+        public void Update(string name, string activeIngredient, decimal price, int stockQuantity, DateOnly expirationDate, Guid operationCenterId, DateTime createdAt)
         {
             DefineData(name, activeIngredient, price, stockQuantity,
-                expirationDate, DateOnly.FromDateTime(createdAt));
+                expirationDate, operationCenterId, DateOnly.FromDateTime(createdAt));
         }
 
-        private void DefineData(string name, string activeIngredient, decimal price, int stockQuantity, DateOnly expirationDate, DateOnly now)
+        private void DefineData(string name, string activeIngredient, decimal price, int stockQuantity, DateOnly expirationDate, Guid operationCenterId, DateOnly now)
         {
             // Regras de negócio: valem sempre, venha o dado de onde vier (API, teste, importação...).
             if (string.IsNullOrWhiteSpace(name)) throw new DomainException(MedicationMessages.NameRequired);
@@ -67,12 +73,14 @@ namespace CrudKronixForDevs.Core.Domains
             if (price <= 0) throw new DomainException(MedicationMessages.PriceInvalid);
             if (stockQuantity < 0) throw new DomainException(MedicationMessages.StockInvalid);
             if (expirationDate <= now) throw new DomainException(MedicationMessages.ExpirationDateMustBeFuture);
+            if (operationCenterId == Guid.Empty) throw new DomainException(OperationCenterMessages.OperationCenterRequired);
 
             Name = name.Trim();
             ActiveIngredient = activeIngredient.Trim();
             Price = price;
             StockQuantity = stockQuantity;
             ExpirationDate = expirationDate;
+            OperationCenterId = operationCenterId;
         }
 
         public bool IsExpired(DateOnly now) => ExpirationDate < now;

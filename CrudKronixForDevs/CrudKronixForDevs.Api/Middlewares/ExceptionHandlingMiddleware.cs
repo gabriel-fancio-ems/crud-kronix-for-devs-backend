@@ -23,6 +23,16 @@ namespace CrudKronixForDevs.Api.Middlewares
                 logger.LogWarning("Conflito: {Mensagem}", ex.Message);
                 await WriteProblemAsync(context, StatusCodes.Status409Conflict, "Medicamento duplicado", ex.Message);
             }
+            catch (DuplicateOperationCenterException ex)
+            {
+                logger.LogWarning("Conflito: {Mensagem}", ex.Message);
+                await WriteProblemAsync(context, StatusCodes.Status409Conflict, "Centro de operação duplicado", ex.Message);
+            }
+            catch (OperationCenterInUseException ex)
+            {
+                logger.LogWarning("Conflito: {Mensagem}", ex.Message);
+                await WriteProblemAsync(context, StatusCodes.Status409Conflict, "Centro de operação em uso", ex.Message);
+            }
             catch (DomainException ex)
             {
                 logger.LogWarning("Regra de negócio violada: {Mensagem}", ex.Message);

@@ -1,6 +1,7 @@
 ﻿using CrudKronixForDevs.Api.Validation;
 using CrudKronixForDevs.Core.Dtos.Medications;
 using CrudKronixForDevs.Core.Resources.Medications;
+using CrudKronixForDevs.Core.Resources.OperationCenters;
 using CrudKronixForDevs.Tests.Builder;
 using System;
 using System.Collections.Generic;
@@ -30,8 +31,19 @@ namespace CrudKronixForDevs.Tests.Unit.Validation
             var errors = _validator.Validate(new MedicationRequest());
 
             Assert.Equal(
-                new[] { "nome", "principioAtivo", "preco", "dataValidade" }.Order(),
+                new[] { "nome", "principioAtivo", "preco", "dataValidade", "centroOperacao" }.Order(),
                 errors.Keys.Order());
+        }
+
+        public static TheoryData<Guid?> MissingOperationCenterIds => new() { null, Guid.Empty };
+
+        [Theory]
+        [MemberData(nameof(MissingOperationCenterIds))]
+        public void Validate_WithoutOperationCenter_ShouldReturnRequiredError(Guid? operationCenterId)
+        {
+            var errors = _validator.Validate(new MedicationRequestBuilder().WithOperationCenterId(operationCenterId).Build());
+
+            Assert.Equal(OperationCenterMessages.OperationCenterRequired, Assert.Single(errors["centroOperacao"]));
         }
 
         [Theory]
