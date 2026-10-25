@@ -21,8 +21,16 @@ namespace CrudKronixForDevs.Tests.Integration
         private const string Route = "/api/medication";
 
         private HttpClient _client = null!;
+        private Guid _operationCenterId;
 
-        public async Task InitializeAsync() => _client = await factory.CreateAuthenticatedClientAsync();
+        public async Task InitializeAsync()
+        {
+            _client = await factory.CreateAuthenticatedClientAsync();
+
+            // Todo medicamento precisa de um centro de operação existente.
+            var operationCenter = await OperationCenterEndpointsTests.CreateOperationCenterAsync(_client);
+            _operationCenterId = operationCenter.Id;
+        }
 
         public Task DisposeAsync()
         {
@@ -30,7 +38,8 @@ namespace CrudKronixForDevs.Tests.Integration
             return Task.CompletedTask;
         }
 
-        private static MedicationRequestBuilder NewRequest() => new MedicationRequestBuilder().WithUniqueName();
+        private MedicationRequestBuilder NewRequest() =>
+            new MedicationRequestBuilder().WithUniqueName().WithOperationCenterId(_operationCenterId);
 
         // Cadastra um medicamento e devolve o que a API respondeu.
         private async Task<MedicationResponse> CreateAsync(MedicationRequest request)
@@ -59,7 +68,7 @@ namespace CrudKronixForDevs.Tests.Integration
             Assert.Equal(request.Name, found!.Name);
 
             // 3) Atualizar → 200 com os novos dados
-            var update = new MedicationRequestBuilder().WithName(request.Name).WithPrice(99.90m).Build();
+            var update = NewRequest().WithName(request.Name).WithPrice(99.90m).Build();
             var updateResponse = await _client.PutAsJsonAsync($"{Route}/{created.Id}", update);
 
             Assert.Equal(HttpStatusCode.OK, updateResponse.StatusCode);
@@ -108,6 +117,27 @@ namespace CrudKronixForDevs.Tests.Integration
             Assert.Contains("preco", problem.Errors.Keys);
             Assert.Contains("quantidadeEstoque", problem.Errors.Keys);
             Assert.Contains("dataValidade", problem.Errors.Keys);
+            Assert.Contains("centroOperacao", problem.Errors.Keys);
+        }
+
+        [Fact]
+        public async Task Create_WithUnknownOperationCenter_ShouldReturn400FromBusinessRule()
+        {
+            var request = NewRequest().WithOperationCenterId(Guid.NewGuid()).Build();
+
+            var response = await _client.PostAsJsonAsync(Route, request);
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+            Assert.Equal("Regra de negócio violada", problem!.Title);
+        }
+
+        [Fact]
+        public async Task Create_ShouldReturnOperationCenterIdInTheResponse()
+        {
+            var created = await CreateAsync(NewRequest().Build());
+
+            Assert.Equal(_operationCenterId, created.OperationCenterId);
         }
 
         [Fact]
@@ -203,7 +233,7 @@ namespace CrudKronixForDevs.Tests.Integration
             var second = await CreateAsync(NewRequest().Build());
 
             var response = await _client.PutAsJsonAsync($"{Route}/{second.Id}",
-                new MedicationRequestBuilder().WithName(first.Name).Build());
+                NewRequest().WithName(first.Name).Build());
 
             Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
         }

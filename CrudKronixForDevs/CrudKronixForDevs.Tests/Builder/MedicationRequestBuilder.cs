@@ -22,6 +22,10 @@ namespace CrudKronixForDevs.Tests.Builder
         private int _stockQuantity = 150;
         private DateOnly? _expirationDate;
 
+        // Id qualquer: basta para o validador. Nos testes que passam pelo caso de uso,
+        // troque por um centro de operação que exista de verdade (WithOperationCenterId).
+        private Guid? _operationCenterId = Guid.NewGuid();
+
         /// <param name="today">Data de "hoje" usada para calcular uma validade futura (padrão: daqui a 1 ano).</param>
         public MedicationRequestBuilder(DateOnly? today = null)
         {
@@ -33,6 +37,7 @@ namespace CrudKronixForDevs.Tests.Builder
         public MedicationRequestBuilder WithPrice(decimal price) { _price = price; return this; }
         public MedicationRequestBuilder WithStockQuantity(int stockQuantity) { _stockQuantity = stockQuantity; return this; }
         public MedicationRequestBuilder WithExpirationDate(DateOnly? expirationDate) { _expirationDate = expirationDate; return this; }
+        public MedicationRequestBuilder WithOperationCenterId(Guid? operationCenterId) { _operationCenterId = operationCenterId; return this; }
 
         /// <summary>Nome único, útil nos testes de integração para não esbarrar na regra de duplicidade.</summary>
         public MedicationRequestBuilder WithUniqueName() => WithName($"Medicamento {Guid.NewGuid():N}");
@@ -43,7 +48,8 @@ namespace CrudKronixForDevs.Tests.Builder
             ActiveIngredient = _activeIngredient,
             Price = _price,
             StockQuantity = _stockQuantity,
-            ExpirationDate = _expirationDate
+            ExpirationDate = _expirationDate,
+            OperationCenterId = _operationCenterId
         };
     }
 

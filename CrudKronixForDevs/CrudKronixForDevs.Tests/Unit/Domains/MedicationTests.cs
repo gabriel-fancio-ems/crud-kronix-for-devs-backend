@@ -1,6 +1,7 @@
 ﻿using CrudKronixForDevs.Core.Domains;
 using CrudKronixForDevs.Core.Domains.Exceptions;
 using CrudKronixForDevs.Core.Resources.Medications;
+using CrudKronixForDevs.Core.Resources.OperationCenters;
 using CrudKronixForDevs.Tests.Fakes;
 using System;
 using System.Collections.Generic;
@@ -22,6 +23,7 @@ namespace CrudKronixForDevs.Tests.Unit.Domains
     {
         private static readonly DateTime Now = FixedTimeProvider.DefaultNow.UtcDateTime;
         private static readonly DateOnly Today = DateOnly.FromDateTime(Now);
+        private static readonly Guid OperationCenterId = Guid.NewGuid();
 
         // Cria um medicamento válido; cada teste muda só o parâmetro que interessa.
         private static Medication CreateValid(
@@ -29,8 +31,10 @@ namespace CrudKronixForDevs.Tests.Unit.Domains
             string activeIngredient = "Dipirona",
             decimal price = 10m,
             int stockQuantity = 5,
-            DateOnly? expirationDate = null) =>
-            Medication.Add(name, activeIngredient, price, stockQuantity, expirationDate ?? Today.AddYears(1), Now);
+            DateOnly? expirationDate = null,
+            Guid? operationCenterId = null) =>
+            Medication.Add(name, activeIngredient, price, stockQuantity, expirationDate ?? Today.AddYears(1),
+                operationCenterId ?? OperationCenterId, Now);
 
         // ---------------------------------------------------------------- Add (criação)
 
@@ -41,7 +45,7 @@ namespace CrudKronixForDevs.Tests.Unit.Domains
             var expiration = Today.AddMonths(6);
 
             // Act
-            var medication = Medication.Add("Dipirona", "Dipirona Monoidratada", 12.90m, 100, expiration, Now);
+            var medication = Medication.Add("Dipirona", "Dipirona Monoidratada", 12.90m, 100, expiration, OperationCenterId, Now);
 
             // Assert
             Assert.NotEqual(Guid.Empty, medication.Id);
@@ -50,7 +54,16 @@ namespace CrudKronixForDevs.Tests.Unit.Domains
             Assert.Equal(12.90m, medication.Price);
             Assert.Equal(100, medication.StockQuantity);
             Assert.Equal(expiration, medication.ExpirationDate);
+            Assert.Equal(OperationCenterId, medication.OperationCenterId);
             Assert.Equal(Now, medication.CreatedAt);
+        }
+
+        [Fact]
+        public void Add_WithoutOperationCenter_ShouldThrowDomainException()
+        {
+            var exception = Assert.Throws<DomainException>(() => CreateValid(operationCenterId: Guid.Empty));
+
+            Assert.Equal(OperationCenterMessages.OperationCenterRequired, exception.Message);
         }
 
         [Fact]
@@ -162,13 +175,15 @@ namespace CrudKronixForDevs.Tests.Unit.Domains
             var later = Now.AddDays(10);
 
             // Act
-            medication.Update("Dipirona Sódica", "Dipirona", 15m, 20, Today.AddYears(2), later);
+            var newOperationCenterId = Guid.NewGuid();
+            medication.Update("Dipirona Sódica", "Dipirona", 15m, 20, Today.AddYears(2), newOperationCenterId, later);
 
             // Assert
             Assert.Equal("Dipirona Sódica", medication.Name);
             Assert.Equal(15m, medication.Price);
             Assert.Equal(20, medication.StockQuantity);
             Assert.Equal(Today.AddYears(2), medication.ExpirationDate);
+            Assert.Equal(newOperationCenterId, medication.OperationCenterId);
             Assert.Equal(originalId, medication.Id);   // o id não muda
             Assert.Equal(Now, medication.CreatedAt);   // a data de criação não muda
         }
@@ -179,7 +194,7 @@ namespace CrudKronixForDevs.Tests.Unit.Domains
             var medication = CreateValid(price: 10m);
 
             Assert.Throws<DomainException>(
-                () => medication.Update("Dipirona", "Dipirona", -5m, 10, Today.AddYears(1), Now));
+                () => medication.Update("Dipirona", "Dipirona", -5m, 10, Today.AddYears(1), OperationCenterId, Now));
 
             // As validações acontecem ANTES de qualquer alteração, então nada mudou.
             Assert.Equal(10m, medication.Price);

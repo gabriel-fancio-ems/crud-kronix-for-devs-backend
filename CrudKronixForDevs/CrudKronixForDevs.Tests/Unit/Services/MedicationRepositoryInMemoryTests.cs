@@ -14,7 +14,7 @@ namespace CrudKronixForDevs.Tests.Unit.Services
         private static Medication NewMedication(string name = "Dipirona")
         {
             var now = FixedTimeProvider.DefaultNow.UtcDateTime;
-            return Medication.Add(name, "Princípio", 10m, 1, DateOnly.FromDateTime(now).AddYears(1), now);
+            return Medication.Add(name, "Princípio", 10m, 1, DateOnly.FromDateTime(now).AddYears(1), Guid.NewGuid(), now);
         }
 
         [Fact]

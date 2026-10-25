@@ -16,5 +16,6 @@ namespace CrudKronixForDevs.Core.Dtos.Medications
         decimal Price,
         int StockQuantity,
         DateOnly ExpirationDate,
+        Guid OperationCenterId,
         DateTime CreatedAt);
 }

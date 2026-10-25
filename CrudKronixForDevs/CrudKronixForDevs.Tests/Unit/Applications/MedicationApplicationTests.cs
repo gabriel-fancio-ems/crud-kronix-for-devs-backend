@@ -1,7 +1,11 @@
 ﻿using CrudKronixForDevs.Core.Applications;
+using CrudKronixForDevs.Core.Domains;
+using CrudKronixForDevs.Core.Domains.Enums;
 using CrudKronixForDevs.Core.Domains.Exceptions;
 using CrudKronixForDevs.Core.Resources.Medications;
+using CrudKronixForDevs.Core.Resources.OperationCenters;
 using CrudKronixForDevs.Core.Services.Medications;
+using CrudKronixForDevs.Core.Services.OperationCenters;
 using CrudKronixForDevs.Tests.Builder;
 using CrudKronixForDevs.Tests.Fakes;
 using System;
@@ -22,16 +26,23 @@ namespace CrudKronixForDevs.Tests.Unit.Applications
     public class MedicationApplicationTests
     {
         private readonly MedicationRepositoryInMemory _repository = new();
+        private readonly OperationCenterRepositoryInMemory _operationCenterRepository = new();
         private readonly FixedTimeProvider _clock = new();
         private readonly MedicationApplication _application;
+        private readonly OperationCenter _operationCenter;
 
         public MedicationApplicationTests()
         {
-            _application = new MedicationApplication(_repository, _clock);
+            _application = new MedicationApplication(_repository, _operationCenterRepository, _clock);
+
+            // Todo medicamento precisa de um centro de operação existente.
+            // O repositório em memória termina na hora, então não há problema em esperar aqui.
+            _operationCenter = OperationCenter.Add("Centro Principal", OperationCenterStatus.Active, _clock.GetUtcNow().UtcDateTime);
+            _operationCenterRepository.AddAsync(_operationCenter).GetAwaiter().GetResult();
         }
 
-        // Builder já com a "data de hoje" do relógio fixo.
-        private MedicationRequestBuilder NewRequest() => new(_clock.Today);
+        // Builder já com a "data de hoje" do relógio fixo e um centro de operação cadastrado.
+        private MedicationRequestBuilder NewRequest() => new MedicationRequestBuilder(_clock.Today).WithOperationCenterId(_operationCenter.Id);
 
         // ---------------------------------------------------------------- CreateAsync
 
@@ -101,6 +112,33 @@ namespace CrudKronixForDevs.Tests.Unit.Applications
             // Sem data, a aplicação usa default (01/01/0001), que está no passado.
             await Assert.ThrowsAsync<DomainException>(
                 () => _application.CreateAsync(NewRequest().WithExpirationDate(null).Build()));
+        }
+
+        [Fact]
+        public async Task CreateAsync_ShouldLinkMedicationToOperationCenter()
+        {
+            var created = await _application.CreateAsync(NewRequest().Build());
+
+            Assert.Equal(_operationCenter.Id, created.OperationCenterId);
+        }
+
+        [Fact]
+        public async Task CreateAsync_WithUnknownOperationCenter_ShouldThrowDomainExceptionAndNotSave()
+        {
+            var exception = await Assert.ThrowsAsync<DomainException>(
+                () => _application.CreateAsync(NewRequest().WithOperationCenterId(Guid.NewGuid()).Build()));
+
+            Assert.Equal(OperationCenterMessages.OperationCenterNotFound, exception.Message);
+            Assert.Empty(await _repository.GetAllAsync());
+        }
+
+        [Fact]
+        public async Task CreateAsync_WithoutOperationCenter_ShouldThrowDomainException()
+        {
+            var exception = await Assert.ThrowsAsync<DomainException>(
+                () => _application.CreateAsync(NewRequest().WithOperationCenterId(null).Build()));
+
+            Assert.Equal(OperationCenterMessages.OperationCenterRequired, exception.Message);
         }
 
         // ---------------------------------------------------------------- GetByIdAsync
@@ -217,6 +255,31 @@ namespace CrudKronixForDevs.Tests.Unit.Applications
 
             await Assert.ThrowsAsync<DuplicateMedicationException>(
                 () => _application.UpdateAsync(omeprazol.Id, NewRequest().WithName("Dipirona").Build()));
+        }
+
+        [Fact]
+        public async Task UpdateAsync_ChangingToAnotherOperationCenter_ShouldUpdateTheLink()
+        {
+            var other = OperationCenter.Add("Centro Secundário", OperationCenterStatus.Active, _clock.GetUtcNow().UtcDateTime);
+            await _operationCenterRepository.AddAsync(other);
+            var created = await _application.CreateAsync(NewRequest().WithName("Dipirona").Build());
+
+            var updated = await _application.UpdateAsync(created.Id,
+                NewRequest().WithName("Dipirona").WithOperationCenterId(other.Id).Build());
+
+            Assert.Equal(other.Id, updated!.OperationCenterId);
+        }
+
+        [Fact]
+        public async Task UpdateAsync_WithUnknownOperationCenter_ShouldThrowAndKeepOriginalLink()
+        {
+            var created = await _application.CreateAsync(NewRequest().WithName("Dipirona").Build());
+
+            await Assert.ThrowsAsync<DomainException>(
+                () => _application.UpdateAsync(created.Id,
+                    NewRequest().WithName("Dipirona").WithOperationCenterId(Guid.NewGuid()).Build()));
+
+            Assert.Equal(_operationCenter.Id, (await _repository.GetByIdAsync(created.Id))!.OperationCenterId);
         }
 
         [Fact]
