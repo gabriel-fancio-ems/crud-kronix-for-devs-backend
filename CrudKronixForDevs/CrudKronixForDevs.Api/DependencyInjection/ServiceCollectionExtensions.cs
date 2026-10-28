@@ -6,10 +6,12 @@ using CrudKronixForDevs.Core.Configuration;
 using CrudKronixForDevs.Core.Domains.Interfaces;
 using CrudKronixForDevs.Core.Dtos;
 using CrudKronixForDevs.Core.Dtos.Medications;
+using CrudKronixForDevs.Core.Dtos.Operations;
 using CrudKronixForDevs.Core.Dtos.OperationCenters;
 using CrudKronixForDevs.Core.Dtos.Users;
 using CrudKronixForDevs.Core.Services;
 using CrudKronixForDevs.Core.Services.Medications;
+using CrudKronixForDevs.Core.Services.Operations;
 using CrudKronixForDevs.Core.Services.OperationCenters;
 using CrudKronixForDevs.Core.Services.Users;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -41,6 +43,7 @@ namespace CrudKronixForDevs.Api.DependencyInjection
             services.AddOpenApi(options => options.AddDocumentTransformer<BearerSecuritySchemeTransformer>());
 
             services.AddSingleton<IValidator<MedicationRequest>, MedicationRequestValidator>();
+            services.AddSingleton<IValidator<OperationRequest>, OperationRequestValidator>();
             services.AddSingleton<IValidator<OperationCenterRequest>, OperationCenterRequestValidator>();
             services.AddSingleton<IValidator<LoginRequest>, LoginRequestValidator>();
 
@@ -107,10 +110,12 @@ namespace CrudKronixForDevs.Api.DependencyInjection
 
             // Singleton porque são o nosso "banco": precisam sobreviver entre as requisições.
             services.AddSingleton<IMedicationRepository, MedicationRepositoryInMemory>();
+            services.AddSingleton<IOperationRepository, OperationRepositoryInMemory>();
             services.AddSingleton<IOperationCenterRepository, OperationCenterRepositoryInMemory>();
             services.AddSingleton<IUserRepository, UserRepositoryInMemory>();
 
             services.AddScoped<IMedicationApplication, MedicationApplication>();
+            services.AddScoped<IOperationApplication, OperationApplication>();
             services.AddScoped<IOperationCenterApplication, OperationCenterApplication>();
             services.AddScoped<IAuthApplication, AuthApplication>();
 

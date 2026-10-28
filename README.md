@@ -169,15 +169,15 @@ CrudKronixForDevs/
 
 | Pasta | Projeto | Responsabilidade |
 | --- | --- | --- |
-| `Api/Controllers` | Api | `AuthController`, `MedicationController` e `OperationCenterController`: recebem a requisição, validam o formato e delegam ao Core |
+| `Api/Controllers` | Api | `AuthController`, `MedicationController`, `OperationCenterController` e `OperationController`: recebem a requisição, validam o formato e delegam ao Core |
 | `Api/Validation` | Api | Validadores manuais (`IValidator<T>`) que devolvem `campo → erros` |
 | `Api/Authorization` | Api | Geração de JWT, hash de senha, opções do JWT e esquema Bearer no OpenAPI |
 | `Api/Middlewares` | Api | `ExceptionHandlingMiddleware`: converte exceções em ProblemDetails |
 | `Api/DependencyInjection` | Api | Registro de serviços e criação do usuário administrador na subida |
-| `Core/Applications` | Core | Casos de uso: `MedicationApplication`, `OperationCenterApplication` e `AuthApplication` |
-| `Core/Domains` | Core | Entidades `Medication`, `OperationCenter` e `User`, enum `OperationCenterStatus`, exceções de domínio e interfaces de repositório |
-| `Core/Dtos` | Core | Contratos de entrada e saída (`MedicationRequest`, `MedicationResponse`, `OperationCenterRequest`, `OperationCenterResponse`, `LoginRequest`, `LoginResponse`) |
-| `Core/Services` | Core | Repositórios em memória de medicamentos, centros de operação e usuários |
+| `Core/Applications` | Core | Casos de uso: `MedicationApplication`, `OperationCenterApplication`, `OperationApplication` e `AuthApplication` |
+| `Core/Domains` | Core | Entidades `Medication`, `OperationCenter`, `Operation` e `User`, enums de status, exceções de domínio e interfaces de repositório |
+| `Core/Dtos` | Core | Contratos de entrada e saída para medicamentos, operações, centros de operação e autenticação |
+| `Core/Services` | Core | Repositórios em memória de medicamentos, operações, centros de operação e usuários |
 | `Core/Extensions` | Core | Mapeamento entidade → DTO e normalização de texto para busca |
 | `Core/Resources` | Core | Mensagens exibidas ao usuário, centralizadas |
 | `Core/Configuration` | Core | `UserOptions`: dados do usuário administrador |
@@ -185,13 +185,13 @@ CrudKronixForDevs/
 
 **Caminho de uma requisição:** Controller → Validator → Application (caso de uso) → Domínio → Repositório → DTO de resposta.
 
-**Tempo de vida das dependências:** repositórios, validadores, `PasswordService`, `JwtTokenService` e `TimeProvider` são Singleton (os repositórios precisam sobreviver entre requisições). `MedicationApplication`, `OperationCenterApplication` e `AuthApplication` são Scoped.
+**Tempo de vida das dependências:** repositórios, validadores, `PasswordService`, `JwtTokenService` e `TimeProvider` são Singleton (os repositórios precisam sobreviver entre requisições). `MedicationApplication`, `OperationCenterApplication`, `OperationApplication` e `AuthApplication` são Scoped.
 
 **Pipeline HTTP, na ordem:** `ExceptionHandlingMiddleware` → OpenAPI e Scalar (só em Development) → `UseAuthentication` → `UseAuthorization` → Controllers.
 
 ## Autenticação
 
-Existe um único usuário, o administrador criado na subida da API a partir da seção `User`. Ele faz login com e-mail e senha e recebe um JWT válido por 60 minutos. Todo endpoint de medicamentos e de centros de operação exige esse token.
+Existe um único usuário, o administrador criado na subida da API a partir da seção `User`. Ele faz login com e-mail e senha e recebe um JWT válido por 60 minutos. Todo endpoint de medicamentos, centros de operação e operações exige esse token.
 
 1. Na subida, `AdminUserAsync` lê `UserOptions`, gera o hash da senha com `PasswordService` e grava o usuário no repositório em memória. O e-mail é guardado em minúsculas.
 2. `POST /api/auth/login` valida o formato, busca o usuário por e-mail (sem diferenciar maiúsculas) e confere a senha contra o hash.
@@ -205,7 +205,7 @@ Existe um único usuário, o administrador criado na subida da API a partir da s
 
 ## Endpoints
 
-São doze endpoints: dois de autenticação, cinco de medicamentos e cinco de centros de operação. Todos falam JSON em camelCase; só o login é público.
+São dezessete endpoints: dois de autenticação, cinco de medicamentos, cinco de centros de operação e cinco de operações. Todos falam JSON em camelCase; só o login é público.
 
 | Método | Rota | Auth | Sucesso | Erros |
 | --- | --- | --- | --- | --- |
@@ -221,8 +221,13 @@ São doze endpoints: dois de autenticação, cinco de medicamentos e cinco de ce
 | POST | `/api/operation-center` | Sim | 201 `OperationCenterResponse` + cabeçalho `Location` | 400, 401, 409 |
 | PUT | `/api/operation-center/{id}` | Sim | 200 `OperationCenterResponse` | 400, 401, 404, 409 |
 | DELETE | `/api/operation-center/{id}` | Sim | 204 sem corpo | 401, 404, 409 |
+| GET | `/api/operation?operation=<trecho>` | Sim | 200 lista de `OperationResponse` | 401 |
+| GET | `/api/operation/{id}` | Sim | 200 `OperationResponse` | 401, 404 |
+| POST | `/api/operation` | Sim | 201 `OperationResponse` + cabeçalho `Location` | 400, 401 |
+| PUT | `/api/operation/{id}` | Sim | 200 `OperationResponse` | 400, 401, 404 |
+| DELETE | `/api/operation/{id}` | Sim | 204 sem corpo | 401, 404 |
 
-`{id}` é um GUID. A listagem de medicamentos filtra por trecho do nome **ou** do princípio ativo, sem diferenciar acentos e maiúsculas, e ordena por nome. A de centros de operação filtra por trecho da descrição e ordena por descrição.
+`{id}` é um GUID. A listagem de medicamentos filtra por trecho do nome **ou** do princípio ativo, sem diferenciar acentos e maiúsculas, e ordena por nome. A de centros de operação filtra por trecho da descrição e ordena por descrição. Operações filtra pelo campo `operation` e ordena por esse campo.
 
 ### Login
 
@@ -297,6 +302,32 @@ Todo medicamento pertence a um centro de operação: `operationCenterId` é obri
 
 O estoque se chama `quantityInStock` na entrada e `stockQuantity` na saída. O PUT substitui todos os campos; não há atualização parcial.
 
+### Operação de fábrica: entrada (POST e PUT)
+
+```json
+{
+  "productionOrderId": "9b2f1c3e-0d4a-4f6b-8e7a-1c2d3e4f5a6b",
+  "operation": "Montagem",
+  "workCenterId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "status": "Pending"
+}
+```
+
+`productionOrderId` e `workCenterId` são GUIDs obrigatórios. `operation` é obrigatório e aceita até 150 caracteres. `status` aceita `Pending` (Pendente), `InProgress` (Em andamento) ou `Completed` (Concluída). Os IDs são armazenados como referências; como não há cadastros de ordem de produção ou centro de trabalho nesta solução, a existência deles não é verificada.
+
+### Operação de fábrica: saída
+
+```json
+{
+  "id": "4c3e1f2a-0d4a-4f6b-8e7a-1c2d3e4f5a6b",
+  "productionOrderId": "9b2f1c3e-0d4a-4f6b-8e7a-1c2d3e4f5a6b",
+  "operation": "Montagem",
+  "workCenterId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "status": "Pending",
+  "createdAt": "2026-10-21T11:34:00"
+}
+```
+
 ## Regras de negócio e validações
 
 A validação acontece em duas camadas: o validador da Api devolve 400 com todos os erros de formato de uma vez, e a entidade `Medication` revalida as regras para nunca ficar em estado inválido. O nome duplicado é checado no caso de uso, porque precisa consultar os outros registros.
@@ -311,6 +342,10 @@ A validação acontece em duas camadas: o validador da Api devolve 400 com todos
 | `operationCenterId` | obrigatório (não pode ser GUID vazio) | o centro precisa existir (400 via `DomainException`) |
 | `description` (centro) | obrigatório, até 150 caracteres | obrigatório; espaços nas pontas removidos; única (409) |
 | `status` (centro) | obrigatório, `Active` ou `Inactive` | precisa ser um valor válido do enum |
+| `productionOrderId` (operação) | obrigatório e não pode ser GUID vazio | armazenado como referência; não há cadastro correspondente para validar |
+| `operation` | obrigatório, até 150 caracteres | espaços nas pontas removidos |
+| `workCenterId` (operação) | obrigatório e não pode ser GUID vazio | armazenado como referência; não há cadastro correspondente para validar |
+| `status` (operação) | obrigatório, `Pending`, `InProgress` ou `Completed` | precisa ser um valor válido do enum |
 | `email` (login) | obrigatório e com `@` | guardado em minúsculas |
 | `password` (login) | obrigatório | conferido contra o hash |
 
@@ -351,7 +386,7 @@ Exemplo de 400 de validação:
 }
 ```
 
-As chaves de `errors` são `nome`, `principioAtivo`, `preco`, `quantidadeEstoque`, `dataValidade` e `centroOperacao` para medicamentos, e `descricao` e `status` para centros de operação.
+As chaves de `errors` são `nome`, `principioAtivo`, `preco`, `quantidadeEstoque`, `dataValidade` e `centroOperacao` para medicamentos; `descricao` e `status` para centros de operação; e `productionOrderId`, `operation`, `workCenterId` e `status` para operações.
 
 ## Testes
 
