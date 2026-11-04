@@ -23,5 +23,11 @@ namespace CrudKronixForDevs.Core.Services.Equipments
             _equipments[equipment.Id] = equipment;
             return Task.CompletedTask;
         }
+
+        public Task<Equipment?> GetByIdAsync(Guid id)
+        {
+            _equipments.TryGetValue(id, out var equipment);
+            return Task.FromResult(equipment);
+        }
     }
 }

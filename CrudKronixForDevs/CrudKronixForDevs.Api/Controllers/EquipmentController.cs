@@ -45,5 +45,15 @@ namespace CrudKronixForDevs.Api.Controllers
             // Ainda não há GetById, então devolve 201 sem o header Location.
             return StatusCode(StatusCodes.Status201Created, created);
         }
+
+        /// <summary>Busca um medicamento pelo id.</summary>
+        [HttpGet("{id:guid}")]
+        [ProducesResponseType(typeof(EquipmentResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<EquipmentResponse>> GetById(Guid id)
+        {
+            var equipment = await application.GetByIdAsync(id);
+            return equipment is null ? NotFound() : Ok(equipment);
+        }
     }
 }

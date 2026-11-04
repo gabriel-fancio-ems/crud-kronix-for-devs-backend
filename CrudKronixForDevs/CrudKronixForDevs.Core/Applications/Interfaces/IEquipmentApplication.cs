@@ -10,5 +10,6 @@ namespace CrudKronixForDevs.Core.Applications.Interfaces
     {
         Task<IReadOnlyList<EquipmentResponse>> ListAsync();
         Task<EquipmentResponse> CreateAsync(EquipmentRequest request);
+        Task<EquipmentResponse?> GetByIdAsync(Guid id);
     }
 }

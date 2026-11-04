@@ -52,6 +52,12 @@ namespace CrudKronixForDevs.Core.Applications
                     EquipmentMessages.DuplicateEquipment(request.Code!.Trim()));
         }
 
+        public async Task<EquipmentResponse?> GetByIdAsync(Guid id)
+        {
+            var equipment = await repository.GetByIdAsync(id);
+            return equipment?.ToResponse();
+        }
+
         private DateTime Now() => timeProvider.GetLocalNow().DateTime;
     }
 }
