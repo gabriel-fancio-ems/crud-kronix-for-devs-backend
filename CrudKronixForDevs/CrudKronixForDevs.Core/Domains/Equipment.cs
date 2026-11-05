@@ -32,12 +32,8 @@ namespace CrudKronixForDevs.Core.Domains
 
         public static Equipment Add(string code, string description, EquipmentStatus status, DateTime createdAt)
         {
-            // Regras de negócio: valem sempre, venha o dado de onde vier (API, teste, importação...).
-            if (string.IsNullOrWhiteSpace(code)) throw new DomainException(EquipmentMessages.CodeRequired);
-            if (string.IsNullOrWhiteSpace(description)) throw new DomainException(EquipmentMessages.DescriptionRequired);
-            if (!Enum.IsDefined(status)) throw new DomainException(EquipmentMessages.StatusInvalid);
 
-            return new Equipment
+            var equipment  = new Equipment
             {
                 Id = Guid.NewGuid(),
                 Code = code.Trim(),
@@ -45,7 +41,31 @@ namespace CrudKronixForDevs.Core.Domains
                 Status = status,
                 CreatedAt = createdAt
             };
+
+             equipment.DefineData(code, description, status);
+
+            return equipment;
         }
+
+        
+        public void Update(string code, string description, EquipmentStatus status)
+        {
+            DefineData(code, description, status);
+        }
+
+        
+        private void DefineData(string code, string description, EquipmentStatus status)
+        {
+            // Regras de negócio: valem sempre, venha o dado de onde vier (API, teste, importação...).
+            if (string.IsNullOrWhiteSpace(code)) throw new DomainException(EquipmentMessages.CodeRequired);
+            if (string.IsNullOrWhiteSpace(description)) throw new DomainException(EquipmentMessages.DescriptionRequired);
+            if (!Enum.IsDefined(status)) throw new DomainException(EquipmentMessages.StatusInvalid);
+
+            Code = code.Trim();
+            Description = description.Trim();
+            Status = status;
+        }
+
 
         public bool IsActive => Status == EquipmentStatus.Active;
     }

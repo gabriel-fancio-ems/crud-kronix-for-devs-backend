@@ -46,7 +46,7 @@ namespace CrudKronixForDevs.Api.Controllers
             return StatusCode(StatusCodes.Status201Created, created);
         }
 
-        /// <summary>Busca um medicamento pelo id.</summary>
+        /// <summary>Busca um equipamento pelo id.</summary>
         [HttpGet("{id:guid}")]
         [ProducesResponseType(typeof(EquipmentResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -54,6 +54,21 @@ namespace CrudKronixForDevs.Api.Controllers
         {
             var equipment = await application.GetByIdAsync(id);
             return equipment is null ? NotFound() : Ok(equipment);
+        }
+
+        /// <summary>Atualiza todos os dados de um equipamento.</summary>
+        [HttpPut("{id:guid}")]
+        [ProducesResponseType(typeof(EquipmentResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+        public async Task<ActionResult<EquipmentResponse>> Update(Guid id, [FromBody] EquipmentRequest request)
+        {
+            var errors = validator.Validate(request);
+            if (errors.Count > 0) return ValidationProblem(new ValidationProblemDetails(errors));
+
+            var updated = await application.UpdateAsync(id, request);
+            return updated is null ? NotFound() : Ok(updated);
         }
     }
 }

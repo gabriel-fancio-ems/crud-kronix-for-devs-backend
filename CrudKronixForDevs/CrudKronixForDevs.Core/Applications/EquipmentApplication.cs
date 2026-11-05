@@ -24,7 +24,7 @@ namespace CrudKronixForDevs.Core.Applications
 
         public async Task<EquipmentResponse> CreateAsync(EquipmentRequest request)
         {
-            await EnsureNotDuplicatedAsync(request);
+            await EnsureNotDuplicatedAsync(request, idIgnored: null);
 
             var equipment = Equipment.Add(
                 request.Code ?? string.Empty,
@@ -36,26 +36,45 @@ namespace CrudKronixForDevs.Core.Applications
             return equipment.ToResponse();
         }
 
-        /// <summary>
-        /// Regra: não podem existir dois equipamentos com o mesmo código.
-        /// </summary>
-        private async Task EnsureNotDuplicatedAsync(EquipmentRequest request)
-        {
-            var codigo = request.Code.NormalizeForSearch();
-
-            var existentes = await repository.GetAllAsync();
-
-            var duplicado = existentes.Any(e => e.Code.NormalizeForSearch() == codigo);
-
-            if (duplicado)
-                throw new DuplicateEquipmentException(
-                    EquipmentMessages.DuplicateEquipment(request.Code!.Trim()));
-        }
 
         public async Task<EquipmentResponse?> GetByIdAsync(Guid id)
         {
             var equipment = await repository.GetByIdAsync(id);
             return equipment?.ToResponse();
+        }
+
+         public async Task<EquipmentResponse?> UpdateAsync(Guid id, EquipmentRequest request)
+        {
+            var equipment = await repository.GetByIdAsync(id);
+            if (equipment is null) return null;
+
+            await EnsureNotDuplicatedAsync(request, idIgnored: id);
+
+            equipment.Update(
+                request.Code ?? string.Empty,
+                request.Description ?? string.Empty,
+                request.Status ?? default);
+
+            await repository.UpdateAsync(equipment);
+            return equipment.ToResponse();
+        }
+
+
+
+        /// <summary>
+        /// Regra: não podem existir dois equipamentos com o mesmo código.
+        /// </summary>
+        private async Task EnsureNotDuplicatedAsync(EquipmentRequest request, Guid? idIgnored)
+        {
+            var code = request.Code.NormalizeForSearch();
+            var descricao = request.Description.NormalizeForSearch();
+
+            var existentes = await repository.GetAllAsync();
+
+            var duplicado = existentes.Any(e => e.Id != idIgnored && e.Code.NormalizeForSearch() == code && e.Description.NormalizeForSearch() == descricao);
+
+            if (duplicado)
+                throw new DuplicateEquipmentException(EquipmentMessages.DuplicateEquipment(request.Description!.Trim()));
         }
 
         private DateTime Now() => timeProvider.GetLocalNow().DateTime;
