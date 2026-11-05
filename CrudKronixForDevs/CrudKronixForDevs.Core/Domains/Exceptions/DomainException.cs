@@ -35,4 +35,12 @@ namespace CrudKronixForDevs.Core.Domains.Exceptions
     public class OperationCenterInUseException(string message) : DomainException(message)
     {
     }
+
+    /// <summary>
+    /// Lançada quando já existe um equipamento com o mesmo código.
+    /// O middleware da Api converte essa exceção em uma resposta HTTP 409 (Conflict).
+    /// </summary>
+    public class DuplicateEquipmentException(string message) : DomainException(message)
+    {
+    }
 }

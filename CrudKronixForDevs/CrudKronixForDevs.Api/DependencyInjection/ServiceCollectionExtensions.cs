@@ -5,11 +5,13 @@ using CrudKronixForDevs.Core.Applications.Interfaces;
 using CrudKronixForDevs.Core.Configuration;
 using CrudKronixForDevs.Core.Domains.Interfaces;
 using CrudKronixForDevs.Core.Dtos;
+using CrudKronixForDevs.Core.Dtos.Equipments;
 using CrudKronixForDevs.Core.Dtos.Medications;
 using CrudKronixForDevs.Core.Dtos.Operations;
 using CrudKronixForDevs.Core.Dtos.OperationCenters;
 using CrudKronixForDevs.Core.Dtos.Users;
 using CrudKronixForDevs.Core.Services;
+using CrudKronixForDevs.Core.Services.Equipments;
 using CrudKronixForDevs.Core.Services.Medications;
 using CrudKronixForDevs.Core.Services.Operations;
 using CrudKronixForDevs.Core.Services.OperationCenters;
@@ -45,6 +47,7 @@ namespace CrudKronixForDevs.Api.DependencyInjection
             services.AddSingleton<IValidator<MedicationRequest>, MedicationRequestValidator>();
             services.AddSingleton<IValidator<OperationRequest>, OperationRequestValidator>();
             services.AddSingleton<IValidator<OperationCenterRequest>, OperationCenterRequestValidator>();
+            services.AddSingleton<IValidator<EquipmentRequest>, EquipmentRequestValidator>();
             services.AddSingleton<IValidator<LoginRequest>, LoginRequestValidator>();
 
             return services;
@@ -112,11 +115,13 @@ namespace CrudKronixForDevs.Api.DependencyInjection
             services.AddSingleton<IMedicationRepository, MedicationRepositoryInMemory>();
             services.AddSingleton<IOperationRepository, OperationRepositoryInMemory>();
             services.AddSingleton<IOperationCenterRepository, OperationCenterRepositoryInMemory>();
+            services.AddSingleton<IEquipmentRepository, EquipmentRepositoryInMemory>();
             services.AddSingleton<IUserRepository, UserRepositoryInMemory>();
 
             services.AddScoped<IMedicationApplication, MedicationApplication>();
             services.AddScoped<IOperationApplication, OperationApplication>();
             services.AddScoped<IOperationCenterApplication, OperationCenterApplication>();
+            services.AddScoped<IEquipmentApplication, EquipmentApplication>();
             services.AddScoped<IAuthApplication, AuthApplication>();
 
             return services;
