@@ -10,5 +10,6 @@ namespace CrudKronixForDevs.Core.Domains.Interfaces
         Task AddAsync(Equipment equipment);
         Task<Equipment?> GetByIdAsync(Guid id);
         Task UpdateAsync(Equipment equipment);
+        Task<bool> RemoveAsync(Guid id);
     }
 }

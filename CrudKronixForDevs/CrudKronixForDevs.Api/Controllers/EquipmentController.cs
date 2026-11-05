@@ -70,5 +70,16 @@ namespace CrudKronixForDevs.Api.Controllers
             var updated = await application.UpdateAsync(id, request);
             return updated is null ? NotFound() : Ok(updated);
         }
+
+        /// <summary>Remove um equipamento. Falha com 409</summary>
+        [HttpDelete("{id:guid}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+        public async Task<IActionResult> Remove(Guid id)
+        {
+            var removed = await application.RemoveAsync(id);
+            return removed ? NoContent() : NotFound();
+        }
     }
 }

@@ -12,5 +12,6 @@ namespace CrudKronixForDevs.Core.Applications.Interfaces
         Task<EquipmentResponse> CreateAsync(EquipmentRequest request);
         Task<EquipmentResponse?> GetByIdAsync(Guid id);
         Task<EquipmentResponse?> UpdateAsync(Guid id, EquipmentRequest request);
+        Task<bool> RemoveAsync(Guid id);
     }
 }

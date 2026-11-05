@@ -35,5 +35,8 @@ namespace CrudKronixForDevs.Core.Services.Equipments
             _equipments[equipment.Id] = equipment;
             return Task.CompletedTask;
         }
+
+        public Task<bool> RemoveAsync(Guid id) =>
+            Task.FromResult(_equipments.TryRemove(id, out _));
     }
 }

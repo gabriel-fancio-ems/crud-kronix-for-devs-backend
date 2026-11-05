@@ -60,6 +60,19 @@ namespace CrudKronixForDevs.Core.Applications
         }
 
 
+         /// <summary>
+        /// Regra: um centro de operação com medicamentos vinculados não pode ser removido,
+        /// senão esses medicamentos ficariam apontando para um centro que não existe.
+        /// </summary>
+        public async Task<bool> RemoveAsync(Guid id)
+        {
+            var equipment = await repository.GetByIdAsync(id);
+            if (equipment is null) return false;
+
+            return await repository.RemoveAsync(id);
+        }
+
+
 
         /// <summary>
         /// Regra: não podem existir dois equipamentos com o mesmo código.
